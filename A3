@@ -1,0 +1,190 @@
+import pygame
+import time
+from game_state import GameState
+from fade_manager import FadeManager
+from ResizeAndCenterImage import resize_and_center_image
+from grid_manager import GridManager
+from GetAvatarCellImageAndPosition import get_avatar_cell_image_and_position
+from UpdateAvatarCell import get_avatar_cell_image_and_position
+from A4 import a4_state
+import os
+class a3_state(GameState):
+    def __init__(self, screen, global_resources):
+        super().__init__(screen)  # Call the constructor of the base class
+        self.global_resources = global_resources
+        self.screen = screen
+        
+        self.enter_pressed = False
+        self.avatar_cell_image = None  # Initialize the placeholder for the avatar cell image
+        self.avatar_cell_position = (0, 0)
+        self.avatar_current_sheet = 0
+        self.ready_for_transition = False
+
+        self.loading_image = global_resources.get_image('loading')
+        # Position the loading image at the center of the screen
+        self.loading_rect = self.loading_image.get_rect(center=self.screen.get_rect().center)
+
+        self.highlight_image = global_resources.get_image('highlight')
+        
+        self.cursor_sound = global_resources.get_sound('cursor')
+        self.choose_sound = global_resources.get_sound('choose')
+
+        
+
+        self.original_background_image = global_resources.get_image('background_a3')
+        
+        # Grid settings
+        self.grid_rows = 3
+        self.grid_columns = 13
+        self.avatar_x_percentage = 29.59 / 100
+        self.avatar_y_percentage = 80 / 100
+        self.highlight_width_percentage = 3.23 / 100
+        self.highlight_height_percentage = 5 / 100
+
+        # Initialize screen and image sizes
+        self.screen_width, self.screen_height = self.screen.get_size()
+        self.background_image, self.background_position = resize_and_center_image(
+            self.original_background_image, self.screen_width, self.screen_height)
+
+        # Initialize GridManager
+        self.grid_manager = GridManager(self.grid_rows, self.grid_columns, self.screen_width,
+                                        self.screen_height, self.avatar_x_percentage,
+                                        self.avatar_y_percentage, self.highlight_width_percentage,
+                                        self.highlight_height_percentage)
+
+        # Update highlight size and position based on the screen size
+        self.update_highlight_size_and_position()
+
+        # Initialize FadeManager
+        self.fade_manager = FadeManager(screen, self.background_image, self.background_position)
+        self.fade_manager.start_fade_out()
+
+    def enter_state(self):
+        super().enter_state()  # Optionally call the base class's enter_state method
+        # Additional entering logic specific to a3_state
+        print("Entering a3_state with specific setup")
+
+    def update_highlight_size_and_position(self):
+        # Update the size of the highlight image
+        target_width = self.screen_width * self.highlight_width_percentage
+        target_height = self.screen_height * self.highlight_height_percentage
+        self.highlight_image = pygame.transform.scale(self.highlight_image, (int(target_width), int(target_height)))
+
+        # Update the highlight position based on the current grid position
+        self.grid_manager.update_highlight_position()
+
+    def update_avatar_sheet_index(self):
+        row, column = self.grid_manager.get_current_position()  # Assuming this returns (row, column) starting from 1
+        self.avatar_current_sheet = (column - 1) * 3 + (row - 1)
+
+    def update(self):
+        self.fade_manager.update()
+        current_screen_size = self.screen.get_size()
+        if current_screen_size != (self.screen_width, self.screen_height):
+            self.screen_width, self.screen_height = current_screen_size
+            self.background_image, self.background_position = resize_and_center_image(
+                self.original_background_image, self.screen_width, self.screen_height)
+
+            # Update GridManager with new screen size
+            self.grid_manager.screen_width = self.screen_width
+            self.grid_manager.screen_height = self.screen_height
+            self.grid_manager.positions_grid = self.grid_manager.calculate_positions_grid()  # Recalculate positions grid
+            self.update_highlight_size_and_position()
+
+            self.fade_manager.update_background(self.background_image, self.background_position)
+
+        self.current_position = self.grid_manager.get_current_position()
+
+        self.update_avatar_sheet_index()
+        
+        #print(f"Current Position - Row: {current_position[0]}, Column: {current_position[1]}")
+        self.avatar_cell_image, self.avatar_cell_position = get_avatar_cell_image_and_position(
+            self.global_resources.sprite_sheet_manager, 
+            self.avatar_current_sheet, 
+            self.screen.get_size()
+        )
+          
+        
+
+    def render(self, screen):
+        # Render the background image
+        screen.blit(self.background_image, self.background_position)
+        # Render fade effects if any
+        self.fade_manager.render()
+        
+        # Get the current highlight position from the GridManager
+        highlight_pos = self.grid_manager.get_highlight_position()
+        
+        # Use the obtained position to render the highlight image
+        screen.blit(self.highlight_image, highlight_pos)
+
+        if self.avatar_cell_image is not None:
+            screen.blit(self.avatar_cell_image, self.avatar_cell_position)
+
+        if self.ready_for_transition:
+            self.screen.fill((0, 0, 0))
+            #self.screen.blit(self.loading_image, self.loading_rect)
+            pygame.display.flip()
+            
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                # Update current row/column based on key press
+                if event.key in [pygame.K_LEFT, pygame.K_a]:
+                    self.grid_manager.current_column = (self.grid_manager.current_column - 1) % self.grid_columns
+                    self.cursor_sound.play()
+                    print(f"Moved Left: Row {self.grid_manager.current_row + 1}, Column {self.grid_manager.current_column + 1}")
+                elif event.key in [pygame.K_RIGHT, pygame.K_d]:
+                    self.grid_manager.current_column = (self.grid_manager.current_column + 1) % self.grid_columns
+                    self.cursor_sound.play()
+                    print(f"Moved Right: Row {self.grid_manager.current_row + 1}, Column {self.grid_manager.current_column + 1}")
+                elif event.key in [pygame.K_UP, pygame.K_w]:
+                    self.grid_manager.current_row = (self.grid_manager.current_row - 1) % self.grid_rows
+                    self.cursor_sound.play()
+                    print(f"Moved Up: Row {self.grid_manager.current_row + 1}, Column {self.grid_manager.current_column + 1}")
+                elif event.key in [pygame.K_DOWN, pygame.K_s]:
+                    self.grid_manager.current_row = (self.grid_manager.current_row + 1) % self.grid_rows
+                    self.cursor_sound.play()
+                    print(f"Moved Down: Row {self.grid_manager.current_row + 1}, Column {self.grid_manager.current_column + 1}")
+                elif event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                    if not self.enter_pressed: 
+                        self.choose_sound.play()
+                        self.enter_pressed = True
+                        self.ready_for_transition = True
+
+                self.grid_manager.update_highlight_position()
+
+
+                #elif event.key == pygame.K_k:
+                ## Call save_position method to save the current row and column
+                    #self.global_resources.db_manager.save_position(1, self.grid_manager.current_row, self.grid_manager.current_column)
+                    #print(f"Position Saved: Row {self.grid_manager.current_row + 1}, Column {self.grid_manager.current_column + 1}")
+
+                ## Load position with 'l' key
+                #elif event.key == pygame.K_l:
+                    ## Call load_position method to load the saved row and column
+                    #position = self.global_resources.db_manager.load_position(1)
+                    #if position is not None:
+                        ## Unpack the returned tuple and update the current row and column
+                        #self.grid_manager.current_row, self.grid_manager.current_column = position
+                        #print(f"Position Loaded: Row {self.grid_manager.current_row + 1}, Column {self.grid_manager.current_column + 1}")
+                    #else:
+                        #print("No saved position found.")
+                        
+                # Update highlight position after changing the row or column
+                #self.grid_manager.update_highlight_position()
+                #print(f"Row {self.grid_manager.current_row + 1}, Column {self.grid_manager.current_column + 1}")
+
+                
+
+    def on_resolution_change(self, new_resolution):
+        pass
+
+    def get_next_state(self, events):
+        if self.enter_pressed:
+            #return None
+            self.grid_manager.current_row = (self.grid_manager.current_row + 1)
+            self.grid_manager.current_column = (self.grid_manager.current_column + 1)
+            self.global_resources.db_manager.save_position(1, self.grid_manager.current_row, self.grid_manager.current_column)
+            return a4_state(self.screen, self.global_resources)
