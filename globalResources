@@ -1,0 +1,68 @@
+import pygame
+import config
+from sprite_sheet_manager import SpriteSheetManager
+
+class GlobalResources:
+    def __init__(self, db_manager):
+        # Assign the passed DatabaseManager instance to self.db_manager
+        self.db_manager = db_manager
+
+        self.images = {}
+        self.image_paths = {
+            'background_a2': config.BACKGROUND_IMAGE_A2,
+            'background_a3': config.BACKGROUND_IMAGE_A3,
+            'background_a4': config.BACKGROUND_IMAGE_A4,
+            'new_game_button': config.NEW_GAME_BUTTON_IMAGE,
+            'continue_button': config.CONTINUE_BUTTON_IMAGE
+            # Add other paths here
+        }
+        self.sounds = {}
+        self.sound_paths = {
+            # Sound paths here
+        }
+        self.fonts = {}
+        self.font_paths = {
+            # Font paths here
+        }
+        self.load_shared_resources()
+
+
+
+        
+
+
+    def initialize_avatar_sprite_manager(self):
+        self.sprite_sheet_manager = SpriteSheetManager(config.SPRITE_DIRECTORY)
+
+    def load_shared_resources(self):
+        # Load shared images
+        
+        self.images['game_cursor'] = pygame.image.load(config.GAME_CURSOR_IMAGE).convert_alpha()
+        self.images['loading'] = pygame.image.load(config.LOADING_IMAGE).convert_alpha()
+        self.images['highlight'] = pygame.image.load(config.HIGHLIGHT_IMAGE).convert_alpha()
+
+        # Load shared sounds
+        self.sounds['cursor'] = pygame.mixer.Sound(config.CURSOR_SOUND_PATH)
+        self.sounds['choose'] = pygame.mixer.Sound(config.CHOOSE_SOUND_PATH)
+        self.music_theme_path = config.THEME_MUSIC_PATH
+        
+        
+
+    
+    def get_image(self, key):
+        if key not in self.images:
+            # Check if the path is stored
+            if key in self.image_paths:
+                # Load the image from its path
+                self.images[key] = pygame.image.load(self.image_paths[key]).convert_alpha()
+            else:
+                # Handle the case where the key is not found
+                print(f"Image key '{key}' not found.")
+                return None
+        return self.images.get(key)
+
+    def get_sound(self, key):
+        return self.sounds.get(key)
+
+    def get_font(self, key):
+        return self.fonts.get(key)
