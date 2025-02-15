@@ -1,0 +1,57 @@
+import sqlite3
+
+class SimpleObfuscator:
+    def __init__(self, shift_amount=1):
+        self.shift_amount = shift_amount
+
+    def shift_characters(self, data):
+        """Shifts the characters in the data by the shift_amount."""
+        return ''.join(chr((ord(char) + self.shift_amount - 32) % 95 + 32) for char in data)
+
+    def unshift_characters(self, data):
+        """Reverses the character shift in the data by the shift_amount."""
+        return ''.join(chr((ord(char) - self.shift_amount - 32) % 95 + 32) for char in data)
+
+class DatabaseManager:
+    def __init__(self, db_path, default_save_slot=1, default_row=1, default_column=1):
+        self.db_path = db_path
+        self.conn = None
+        self.initialize_database()
+        self.save_position(default_save_slot, default_row, default_column)
+
+    def initialize_database(self):
+        """Initialize the database, creating it if it doesn't exist."""
+        self.conn = sqlite3.connect(self.db_path)
+        cursor = self.conn.cursor()
+        # Adjust the table to store only row and column values, along with a save_slot identifier
+        cursor.execute('''CREATE TABLE IF NOT EXISTS game_position (
+                            save_slot INTEGER PRIMARY KEY,
+                            row INTEGER NOT NULL,
+                            column INTEGER NOT NULL)''')
+        self.conn.commit()
+
+    def save_position(self, save_slot, row, column):
+        """Saves the current row and column to the database for a given save slot."""
+        cursor = self.conn.cursor()
+        # Use INSERT OR REPLACE to update an existing record or insert a new one
+        cursor.execute("INSERT OR REPLACE INTO game_position (save_slot, row, column) VALUES (?, ?, ?)",
+                       (save_slot, row, column))
+        self.conn.commit()
+
+    def load_position(self, save_slot):
+        """Loads the row and column from the database for a specific save slot."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT row, column FROM game_position WHERE save_slot = ?", (save_slot,))
+        result = cursor.fetchone()
+        if result:
+            return result  # Returns a tuple (row, column)
+        else:
+            return None  # Indicates no data found for the save_slot
+
+    def close_connection(self):
+        """Close the SQLite database connection."""
+        if self.conn:
+            self.conn.close()
+
+
+    
