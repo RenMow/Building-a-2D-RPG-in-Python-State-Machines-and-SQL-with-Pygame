@@ -1,0 +1,41 @@
+import json
+
+class Obfuscator:
+    def __init__(self, shift_amount=1):
+        self.shift_amount = shift_amount
+
+    def shift_characters(self, data):
+        """Shifts the characters in the data by the shift_amount."""
+        return ''.join(chr(ord(char) + self.shift_amount) for char in data)
+
+    def unshift_characters(self, data):
+        """Reverses the character shift in the data by the shift_amount."""
+        return ''.join(chr(ord(char) - self.shift_amount) for char in data)
+
+    def save_data(self, data, file_name):
+        """Converts data to JSON, obfuscates it, and saves it to a file."""
+        # Convert the data to a JSON string
+        json_data = json.dumps(data)
+        # Shift characters to obfuscate
+        obfuscated_data = self.shift_characters(json_data)
+        # Write the obfuscated data to a file
+        with open(file_name, 'w') as file:
+            file.write(obfuscated_data)
+        print(f"Data saved to {file_name}")
+
+    def load_data(self, file_name):
+        """Loads obfuscated data from a file, deobfuscates it, and converts it back to a Python object."""
+        # Read the obfuscated data from the file
+        with open(file_name, 'r') as file:
+            obfuscated_data = file.read()
+        # Unshift characters to deobfuscate
+        json_data = self.unshift_characters(obfuscated_data)
+        # Convert the JSON string back to a Python object
+        return json.loads(json_data)
+
+# Example usage in your main Pygame file
+# obfuscator = Obfuscator()
+# data_to_save = {'score': 5000, 'level': 20}
+# obfuscator.save_data(data_to_save, 'game_data.txt')
+# loaded_data = obfuscator.load_data('game_data.txt')
+# print(loaded_data)
