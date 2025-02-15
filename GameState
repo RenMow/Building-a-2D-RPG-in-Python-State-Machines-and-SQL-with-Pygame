@@ -1,0 +1,59 @@
+import pygame
+import time
+import sys
+class GameState:
+    def __init__(self, screen, global_resources=None):
+        self.screen = screen
+        self.global_resources = global_resources
+
+    def fade(self, fade_in=True, duration=1000):
+        start_time = pygame.time.get_ticks()
+        fade_surface = pygame.Surface(self.screen.get_size())
+
+        while pygame.time.get_ticks() - start_time < duration:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+            # Clear the screen
+            self.screen.fill((0, 0, 0))
+
+            # Calculate alpha value based on time elapsed
+            time_elapsed = pygame.time.get_ticks() - start_time
+            alpha = int((time_elapsed / duration) * 255) if fade_in else int((1 - time_elapsed / duration) * 255)
+            alpha = min(255, max(0, alpha))  # Clamp alpha between 0 and 255
+
+            # Apply alpha to fade surface and render
+            fade_surface.fill((0, 0, 0))
+            fade_surface.set_alpha(alpha)
+            self.render(fade_surface)  # Render directly onto fade surface
+            self.screen.blit(fade_surface, (0, 0))
+            pygame.display.flip()
+
+    def enter_state(self):
+        print("Entering state...")
+        # Fill the screen with white color
+        self.screen.fill((255, 255, 255))
+        pygame.display.flip()  # Update the display
+        pygame.time.delay(2000)  # Pause for 2 seconds to observe the white screen
+
+        # After the pause, proceed with the fade-in effect
+        self.fade(fade_in=True)
+    
+
+
+
+    def handle_events(self, events):
+        pass  # Placeholder, can be overridden by subclasses
+
+    def exit_state(self):
+        print("Exiting state...")
+        self.fade(fade_in=False)
+
+    def render(self, screen):
+        pass  # Implement in subclass
+
+    def update(self):
+        pass
+
