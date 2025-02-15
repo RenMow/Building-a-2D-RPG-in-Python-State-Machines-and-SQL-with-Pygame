@@ -1,0 +1,26 @@
+# debug_manager.py
+import pygame
+
+class DebugManager:
+    def __init__(self):
+        self.debug_mode = False
+        self.debug_info = []
+
+    def toggle_debug_mode(self):
+        self.debug_mode = not self.debug_mode
+
+    def add_debug_info(self, info):
+        self.debug_info.append(info)
+
+    def render_debug_info(self, screen):
+        if self.debug_mode:
+            debug_surf = pygame.Surface((200, 150))  # Adjust size for additional info
+            debug_surf.set_alpha(128)  # Semi-transparent
+            debug_surf.fill((0, 0, 0))  # Black background
+            y = 0
+            for info in self.debug_info:
+                debug_text = pygame.font.Font(None, 20).render(info, True, (255, 255, 255))
+                debug_surf.blit(debug_text, (5, y))
+                y += 20
+            screen.blit(debug_surf, (screen.get_width() - 210, 10))  # Top right corner
+            self.debug_info.clear()  # Clear after rendering to avoid repeat info
