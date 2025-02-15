@@ -1,0 +1,112 @@
+import pygame
+from game_state import GameState
+from apply_fadeTwo import *
+
+
+class a4_state(GameState):
+    def __init__(self, screen, global_resources):
+        super().__init__(screen, global_resources)  # Important for inheritance
+        self.screen = screen
+        self.global_resources = global_resources
+        self.end_state = False
+        self.background_image = global_resources.get_image('background_a4')
+        self.cursor_sound = global_resources.get_sound('cursor')
+        self.choose_sound = global_resources.get_sound('choose')
+        self.transition_delay = 2000
+        self.ready_for_transition = False
+        self.transition_start_time = 0
+        self.start_transition = False
+        self.transition_timer = 2000
+        self.alpha = 0
+        self.start_time = pygame.time.get_ticks()
+        self.pressed_enter = False
+        self.fading_out = False
+        self.fade_in_completed = False
+        self.fade_start_time = pygame.time.get_ticks()
+        self.fit_image_to_screen()
+        self.position = self.global_resources.db_manager.load_position(1)
+        if self.position is not None:
+            print (f"{self.position}")
+        else:
+            print("No saved position found.")
+
+    def enter_state(self):
+        # If you want a specific fade-in effect for a2_state, override here
+        super().enter_state()  # Optionally call the parent method
+        print("Entering a4_state with specific setup")
+
+    def fit_image_to_screen(self):
+        screen_width, screen_height = self.screen.get_size()
+        image_width, image_height = self.background_image.get_size()
+        scale_factor = min(screen_width / image_width, screen_height / image_height)
+        self.background_image = pygame.transform.scale(self.background_image, (int(image_width * scale_factor), int(image_height * scale_factor)))
+
+    
+    def blit_images(self):
+        # Blit the background image
+        background_rect = self.background_image.get_rect(center=self.screen.get_rect().center)
+        self.screen.blit(self.background_image, background_rect)
+
+        
+        
+    def update(self):
+        current_time = pygame.time.get_ticks()
+        if not self.fade_in_completed:
+            if current_time - self.fade_start_time >= 2000:  
+                self.fade_in_completed = True
+
+        
+
+        if self.start_transition:
+            if pygame.time.get_ticks() - self.transition_start_time > self.transition_timer:
+                self.start_transition = False
+                self.ready_for_transition = True
+                
+
+    def handle_events(self, events):
+        current_time = pygame.time.get_ticks()
+        time_elapsed_cursor = current_time - self.start_time
+
+        
+
+    def handle_enter_press(self):
+        if not self.pressed_enter:
+            self.pressed_enter = True
+            self.choose_sound.play()
+            #self.fading_out = True
+            #self.transition_start_time = pygame.time.get_ticks()
+            
+
+    def render(self, screen):
+        
+        
+
+        if not self.fade_in_completed:
+            # Apply fade effect to background, buttons, and cursor during fade-in process
+            self.apply_fade_effect(self.background_image, self.fade_start_time, 1000)  # First half-second for background
+            
+        
+
+        if self.fading_out:
+            
+            self.ready_for_transition = True
+
+        self.blit_images()
+       
+            
+        
+       
+        
+
+        
+
+    def apply_fade_effect(self, image, start_time, duration):
+        """Applies a fade-in or fade-out effect to an image based on a start time and duration."""
+        return Apply_Fade_In(image, start_time, duration) if not self.fading_out else Apply_Fade_Out(image, start_time, duration)
+
+        
+    def get_next_state(self, events):
+        """Get the next game state."""
+        if self.ready_for_transition:
+            
+            return None
