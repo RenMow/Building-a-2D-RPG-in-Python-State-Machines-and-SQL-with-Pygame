@@ -1,0 +1,60 @@
+import pygame
+from game_state import GameState
+
+class MaroonScreen(GameState):
+    def __init__(self, game_surface, global_resources):
+        super().__init__(game_surface)
+        self.font = pygame.font.Font(None, 36)
+        self.game_surface = game_surface  # Assign the passed game_surface to the instance variable
+        # Updated menu_items list to include all states
+        self.global_resources = global_resources
+        
+            
+        self.menu_items = [
+            "Press 1 for a1_state",
+            "Press 2 for a2_state",
+            "Press 3 for a3_state",
+            "Press 4 for a4_state"
+        ]
+        self.vertical_spacing = 40  # Space between menu items
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                print(f"Key pressed: {pygame.key.name(event.key)}")  # Debug print
+                if event.key == pygame.K_1:
+                    from A1 import a1_state
+                    self.next_state = a1_state(self.game_surface, self.global_resources)
+                    print("Setting next_state to a1_state")  # Debug print
+                elif event.key == pygame.K_2:
+                    self.global_resources.initialize_avatar_sprite_manager()
+                    from A2 import a2_state
+                    self.next_state = a2_state(self.game_surface, self.global_resources)
+                    print("Setting next_state to a2_state")  # Debug print
+                elif event.key == pygame.K_3:
+                    self.global_resources.initialize_avatar_sprite_manager()
+                    from A3 import a3_state
+                    self.next_state = a3_state(self.game_surface, self.global_resources)
+                    print("Setting next_state to a3_state")  # Debug print
+                elif event.key == pygame.K_4:
+                    #self.global_resources.initialize_avatar_sprite_manager()
+                    from A4 import a4_state
+                    self.next_state = a4_state(self.game_surface, self.global_resources)
+                    print("Setting next_state to a4_state")  # Debug print
+                
+                
+    def render(self, screen):
+        screen.fill((128, 0, 0))  # Maroon background
+        for i, menu_item in enumerate(self.menu_items):
+            menu_text_surface = self.font.render(menu_item, True, pygame.Color('white'))
+            text_rect = menu_text_surface.get_rect(center=(screen.get_width() / 2, 50 + i * self.vertical_spacing))
+            screen.blit(menu_text_surface, text_rect)
+
+    
+
+    def update(self):
+        # Implement specific update logic for MaroonScreen here, if necessary
+        pass
+
+    def get_next_state(self, events):
+        return getattr(self, "next_state", None)
