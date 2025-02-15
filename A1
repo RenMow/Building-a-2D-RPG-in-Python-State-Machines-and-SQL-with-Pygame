@@ -1,0 +1,90 @@
+import pygame
+import time
+from game_state import GameState
+from A2 import a2_state
+from fade_manager import FadeManager
+
+
+class a1_state(GameState):
+    def __init__(self, screen, global_resources):
+        super().__init__(screen) 
+        self.screen = screen
+        self.global_resources = global_resources
+        self.font = pygame.font.Font(None, 36)
+        self.text = "Luminary Labs Interactive"
+        self.text_surface = self.font.render(self.text, True, pygame.Color('white'))
+        self.fade_manager = FadeManager(screen, fade_duration=2000)  # Initialize FadeManager without a background image
+        self.phase = "wait"
+        self.start_time = time.time()
+        self.fade_started = False
+        self.text_has_been_displayed = False
+        self.sprite_sheet_loaded = False
+
+    def update(self):
+        
+        elapsed_time = time.time() - self.start_time
+
+        if self.phase == "wait" and elapsed_time >= 2:
+            self.phase = "fade_in"
+            self.start_time = time.time()  # Reset the start time for the fade-in phase
+            self.fade_started = False  # Ensure fade_in starts properly
+
+        if self.phase == "fade_in" and not self.fade_started:
+            self.fade_manager.start_fade_in()  # Start fade-in effect
+            self.fade_started = True
+
+        if self.phase == "fade_in" and not self.fade_manager.fading_in:
+            # Move to display phase only after fade-in is complete
+            self.phase = "display"
+            self.start_time = time.time()  # Reset the start time for the display phase
+
+        #if self.phase == "display" #THIS IS A GREAT SPOT TO UPLOAD RESOURCES, YOU CAN EVEN SKIP THE ELAPSED_TIME ON THE NEXT LINE
+
+        if self.phase == "display" and elapsed_time > 1:
+            # Move to fade_out phase after 1 second of display
+            self.phase = "fade_out"
+            self.start_time = time.time()  # Reset the start time for the fade-out phase
+            self.fade_started = False  # Ensure fade_out starts properly
+            self.text_has_been_displayed = True
+
+        if self.phase == "fade_out" and not self.fade_started:
+            self.fade_manager.start_fade_out()  # Start fade-out effect
+            self.fade_started = True
+
+        if self.phase == "fade_out" and not self.fade_manager.fading_out:
+            # Transition to the next state only after fade-out is complete
+            self.phase = "done"
+
+        if self.phase in ["fade_in", "fade_out"]:
+            # Apply the fade effect to the text surface
+            self.fade_manager.apply_fade_effect(self.text_surface, fade_in=(self.phase == "fade_in"))
+            self.fade_manager.update()  # Always update the fade manager to progress the fade effect
+
+        if self.text_has_been_displayed and not self.sprite_sheet_loaded:
+            self.sprite_sheet_loaded = True
+            self.global_resources.initialize_avatar_sprite_manager()
+            
+        
+
+    def handle_events(self, events):
+        pass  # Placeholder, can be overridden by subclasses
+
+    def render(self, screen):
+        
+        
+        
+        screen.fill((0, 0, 0))
+
+        if self.phase not in ["wait", "done"]:
+            text_rect = self.text_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2))
+            screen.blit(self.text_surface, text_rect)
+            
+        
+
+
+    def get_next_state(self, events):
+        if self.phase == "done":
+            pygame.mixer.music.load(self.global_resources.music_theme_path)
+            pygame.mixer.music.play(-1)
+            return a2_state(self.screen, self.global_resources)
+        return None
