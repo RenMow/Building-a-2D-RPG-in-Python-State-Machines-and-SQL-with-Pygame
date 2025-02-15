@@ -1,0 +1,79 @@
+import pygame
+import time
+
+class FadeManager:
+    def __init__(self, screen, background_image=None, background_position=(0, 0), fade_duration=1000):
+        self.screen = screen
+        self.background_image = background_image
+        self.background_position = background_position  # Position to blit the background image
+        self.fade_duration = fade_duration
+        self.fade_surface = pygame.Surface(self.screen.get_size())
+        self.fade_surface.fill((0, 0, 0))
+        self.full_screen_alpha = 0
+        self.fading_in = False
+        self.fading_out = False
+        self.start_time = None
+
+    def update_background(self, new_background_image, new_background_position):
+        """Update the background image and its position."""
+        self.background_image = new_background_image
+        self.background_position = new_background_position
+
+    def start_fade_in(self):
+        self.fading_in = True
+        self.fading_out = False
+        self.full_screen_alpha = 0
+        self.start_time = pygame.time.get_ticks()
+
+    def start_fade_out(self):
+        self.fading_out = True
+        self.fading_in = False
+        self.full_screen_alpha = 255
+        self.start_time = pygame.time.get_ticks()
+
+    def update(self):
+        if self.start_time is None:
+            return
+
+        time_elapsed = pygame.time.get_ticks() - self.start_time
+
+        if self.fading_in:
+            if time_elapsed < self.fade_duration:
+                self.full_screen_alpha = (time_elapsed / self.fade_duration) * 255
+            else:
+                self.full_screen_alpha = 255
+                self.fading_in = False
+
+        if self.fading_out:
+            if time_elapsed < self.fade_duration:
+                self.full_screen_alpha = 255 - (time_elapsed / self.fade_duration) * 255
+            else:
+                self.full_screen_alpha = 0
+                self.fading_out = False
+
+        self.fade_surface.set_alpha(self.full_screen_alpha)
+
+    def render(self):
+        if self.background_image:
+            self.screen.blit(self.background_image, self.background_position)
+        # Draw the fade surface on top of the background
+        self.screen.blit(self.fade_surface, (0, 0))
+
+    def apply_fade_effect(self, surface, fade_in=True, start_time=None, duration=None):
+        """Apply fade effect to an individual surface."""
+        if start_time is None:
+            start_time = self.start_time  # Use the manager's start time if not specified
+        if duration is None:
+            duration = self.fade_duration  # Use the manager's duration if not specified
+
+        if start_time is None:
+            return 0  # Effect hasn't started yet
+
+        time_elapsed = pygame.time.get_ticks() - start_time
+        if fade_in:
+            alpha = int((time_elapsed / duration) * 255) if time_elapsed < duration else 255
+        else:
+            alpha = int((1 - time_elapsed / duration) * 255) if time_elapsed < duration else 0
+
+        surface.set_alpha(alpha)
+        return alpha
