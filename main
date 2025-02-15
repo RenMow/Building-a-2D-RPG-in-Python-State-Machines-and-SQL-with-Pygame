@@ -1,0 +1,100 @@
+import pygame
+import sys
+import os
+from state_manager import StateManager
+from maroon_screen import MaroonScreen
+from global_resources import GlobalResources
+from SQLwithSaverLoader import*
+#from A1 import a1_state    when game is ready, you will bypass maroon screen and import a1_state
+
+class Game:
+    def __init__(self):
+        pygame.init()
+        
+        self.screen_resolution = (800, 600)  # Default 4:3 resolution
+        self.screen = pygame.display.set_mode(self.screen_resolution, pygame.RESIZABLE)
+        self.game_surface = pygame.Surface((800, 600))  # Game content surface with a fixed 4:3 aspect ratio
+        pygame.display.set_caption(" ")
+        
+        
+        
+        db_manager = DatabaseManager("game_data.db")
+
+        self.global_resources = GlobalResources(db_manager)
+
+        
+        self.clock = pygame.time.Clock()
+        self.state_manager = StateManager(MaroonScreen(self.game_surface, self.global_resources))
+        self.paused = False
+        self.fullscreen = False
+        
+
+    def custom_fullscreen(self):
+        self.fullscreen = not self.fullscreen
+        if self.fullscreen:
+            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        else:
+            self.screen = pygame.display.set_mode(self.screen_resolution, pygame.RESIZABLE)
+
+    def translate_mouse_position(self, pos):
+        screen_width, screen_height = self.screen.get_size()
+        game_surface_width, game_surface_height = self.game_surface.get_size()
+        scale_factor = min(screen_width / game_surface_width, screen_height / game_surface_height)
+        offset_x = (screen_width - game_surface_width * scale_factor) / 2
+        offset_y = (screen_height - game_surface_height * scale_factor) / 2
+        adjusted_x = (pos[0] - offset_x) / scale_factor
+        adjusted_y = (pos[1] - offset_y) / scale_factor
+        return adjusted_x, adjusted_y
+
+    def run(self):
+        while True:
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    self.global_resources.db_manager.close_connection()
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.key == pygame.K_f:
+                        self.custom_fullscreen()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    # Translate mouse position only for MOUSEBUTTONDOWN events
+                    translated_pos = self.translate_mouse_position(event.pos)
+                    translated_event = pygame.event.Event(event.type, pos=translated_pos, button=event.button)
+                    # Pass the translated mouse event to the state manager
+                    self.state_manager.handle_events([translated_event])
+                    continue  # Skip passing this event to the update method
+
+            if not self.paused:
+                # Pass all events, including keyboard events, to the state manager
+                self.state_manager.update(events)
+                self.state_manager.handle_events(events)
+                
+
+            self.game_surface.fill((0, 0, 0))
+            
+
+            self.state_manager.render(self.game_surface)
+            self.scale_and_blit_game_surface()
+            
+            
+            pygame.display.flip()
+            self.clock.tick(30)
+
+    def scale_and_blit_game_surface(self):
+        screen_width, screen_height = self.screen.get_size()
+        game_surface_width, game_surface_height = self.game_surface.get_size()
+        scale_factor = min(screen_width / game_surface_width, screen_height / game_surface_height)
+        scaled_width = int(game_surface_width * scale_factor)
+        scaled_height = int(game_surface_height * scale_factor)
+        scaled_surface = pygame.transform.smoothscale(self.game_surface, (scaled_width, scaled_height))
+        x = (screen_width - scaled_width) // 2
+        y = (screen_height - scaled_height) // 2
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(scaled_surface, (x, y))
+
+if __name__ == "__main__":
+    Game().run()
